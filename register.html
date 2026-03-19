@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Mental Health Assessment{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 50px auto;">
+    <h2 style="text-align: center;">Create Your Account</h2>
+    <p style="color: #888; margin-bottom: 30px; text-align: center;">
+        Join us for secure mental health tracking
+    </p>
+    
+    <form method="POST">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required 
+               minlength="3" maxlength="20" 
+               pattern="[a-zA-Z0-9_]+"
+               placeholder="Choose a username" autofocus>
+        <small style="display: block; margin-top: -10px; margin-bottom: 15px;">
+            3-20 characters: letters, numbers, underscores only
+        </small>
+        
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" required 
+               placeholder="your.email@example.com">
+        <small style="display: block; margin-top: -10px; margin-bottom: 15px;">
+            We'll never share your email with anyone
+        </small>
+        
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required 
+               minlength="8"
+               placeholder="At least 8 characters">
+        
+        <label for="confirm_password">Confirm Password</label>
+        <input type="password" id="confirm_password" name="confirm_password" required 
+               minlength="8"
+               placeholder="Re-enter your password">
+        
+        <div style="margin: 20px 0;">
+            <label style="display: flex; align-items: start; cursor: pointer;">
+                <input type="checkbox" required style="width: auto; margin-right: 10px; margin-top: 3px; margin-bottom: 0;">
+                <span style="font-size: 14px;">
+                    I agree to the terms of service and privacy policy. I understand this is a screening tool and not a replacement for professional medical advice.
+                </span>
+            </label>
+        </div>
+        
+        <button type="submit" class="btn" style="width: 100%; color: #000;">Create Account</button>
+    </form>
+    
+    <p style="margin-top: 20px; text-align: center; color: #888;">
+        Already have an account? 
+        <a href="{{ url_for('login') }}" style="color: #d4af37; font-weight: 600; text-decoration: none;">
+            Login here
+        </a>
+    </p>
+</div>
+{% endblock %}

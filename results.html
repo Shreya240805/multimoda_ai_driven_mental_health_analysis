@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Results - Assessment{% endblock %}
+
+{% block extra_css %}
+<style>
+    .results-header {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        border: 2px solid #d4af37;
+    }
+    
+    .score-display {
+        text-align: center;
+        padding: 40px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 10px;
+        margin: 20px 0;
+    }
+    
+    .score-number {
+        font-size: 72px;
+        font-weight: bold;
+        color: #d4af37;
+        line-height: 1;
+    }
+    
+    .severity-badge {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 18px;
+        font-weight: 600;
+        margin: 20px 0;
+    }
+    
+    .severity-none { 
+        background: rgba(0, 128, 0, 0.3); 
+        color: #90EE90; 
+        border: 2px solid #00ff00; 
+    }
+    
+    .severity-mild { 
+        background: rgba(255, 255, 0, 0.3); 
+        color: #ffff00; 
+        border: 2px solid #ffff00; 
+    }
+    
+    .severity-moderate { 
+        background: rgba(255, 165, 0, 0.3); 
+        color: #FFD700; 
+        border: 2px solid #FFA500; 
+    }
+    
+    .severity-severe { 
+        background: rgba(255, 0, 0, 0.3); 
+        color: #ffcccc; 
+        border: 2px solid #ff0000; 
+    }
+    
+    .stat-card {
+        background: rgba(212, 175, 55, 0.1);
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #d4af37;
+        margin-bottom: 20px;
+    }
+    
+    .stat-label {
+        font-size: 14px;
+        color: #888;
+        margin-bottom: 5px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #d4af37;
+    }
+    
+    .recommendation-box {
+        background: rgba(0, 0, 0, 0.5);
+        padding: 20px;
+        border-radius: 5px;
+        border-left: 4px solid #d4af37;
+        margin: 15px 0;
+        white-space: pre-line;
+        line-height: 1.8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Assessment Results</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn" style="color: #000;">← Back to Dashboard</a>
+    </div>
+    
+    <p style="color: #888; margin-bottom: 10px;">
+        Completed on {{ assessment.timestamp.strftime('%B %d, %Y at %I:%M %p') }}
+    </p>
+    
+    {% if assessment.session_duration %}
+    <p style="color: #888; margin-bottom: 30px;">
+        Duration: {{ (assessment.session_duration // 60) }} minutes {{ (assessment.session_duration % 60) }} seconds
+    </p>
+    {% endif %}
+</div>
+
+<!-- PHQ-9 Score -->
+<div class="card">
+    <div class="results-header">
+        <h3 style="text-align: center; margin-bottom: 20px;">PHQ-9 Depression Screening</h3>
+        
+        <div class="score-display">
+            <div class="score-number">{{ assessment.phq9_total }}</div>
+            <p style="font-size: 18px; color: #888; margin: 10px 0;">out of 27</p>
+            
+            {% if assessment.severity_level in ['Severe', 'Moderately Severe'] %}
+            <span class="severity-badge severity-severe">{{ assessment.severity_level }}</span>
+            {% elif assessment.severity_level == 'Moderate' %}
+            <span class="severity-badge severity-moderate">{{ assessment.severity_level }}</span>
+            {% elif assessment.severity_level == 'Mild' %}
+            <span class="severity-badge severity-mild">{{ assessment.severity_level }}</span>
+            {% else %}
+            <span class="severity-badge severity-none">{{ assessment.severity_level }}</span>
+            {% endif %}
+        </div>
+        
+        <!-- PHQ-9 Breakdown -->
+        <details style="margin-top: 20px;">
+            <summary style="cursor: pointer; color: #d4af37; font-weight: 600; padding: 10px;">
+                View Question-by-Question Breakdown
+            </summary>
+            <div style="margin-top: 15px; padding: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 5px;">
+                <ol style="line-height: 2;">
+                    <li>Little interest or pleasure: <strong>{{ assessment.phq9_q1 }}</strong></li>
+                    <li>Feeling down, depressed: <strong>{{ assessment.phq9_q2 }}</strong></li>
+                    <li>Sleep problems: <strong>{{ assessment.phq9_q3 }}</strong></li>
+                    <li>Feeling tired: <strong>{{ assessment.phq9_q4 }}</strong></li>
+                    <li>Appetite changes: <strong>{{ assessment.phq9_q5 }}</strong></li>
+                    <li>Feeling bad about self: <strong>{{ assessment.phq9_q6 }}</strong></li>
+                    <li>Concentration problems: <strong>{{ assessment.phq9_q7 }}</strong></li>
+                    <li>Moving/speaking slowly or fidgety: <strong>{{ assessment.phq9_q8 }}</strong></li>
+                    <li>Thoughts of self-harm: <strong>{{ assessment.phq9_q9 }}</strong></li>
+                </ol>
+                <p style="font-size: 12px; color: #888; margin-top: 15px;">
+                    Scale: 0 = Not at all, 1 = Several days, 2 = More than half the days, 3 = Nearly every day
+                </p>
+            </div>
+        </details>
+    </div>
+</div>
+
+<!-- Multimodal Analysis -->
+<div class="card">
+    <h3 style="margin-bottom: 20px;">🔬 Multimodal Analysis Results</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <!-- Facial Emotion -->
+        {% if assessment.facial_dominant_emotion %}
+        <div class="stat-card">
+            <div class="stat-label">😊 Facial Emotion</div>
+            <div class="stat-value">{{ assessment.facial_dominant_emotion|title }}</div>
+            {% if assessment.facial_emotion_confidence %}
+            <p style="font-size: 14px; color: #888; margin-top: 5px;">
+                Confidence: {{ (assessment.facial_emotion_confidence * 100)|round(1) }}%
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Vocal Emotion -->
+        {% if assessment.vocal_dominant_emotion %}
+        <div class="stat-card">
+            <div class="stat-label">🎤 Vocal Emotion</div>
+            <div class="stat-value">{{ assessment.vocal_dominant_emotion|title }}</div>
+        </div>
+        {% endif %}
+        
+        <!-- Sentiment -->
+        {% if assessment.sentiment_polarity is not none %}
+        <div class="stat-card">
+            <div class="stat-label">💬 Language Sentiment</div>
+            <div class="stat-value">
+                {% if assessment.sentiment_polarity > 0.3 %}
+                Positive
+                {% elif assessment.sentiment_polarity < -0.3 %}
+                Negative
+                {% else %}
+                Neutral
+                {% endif %}
+            </div>
+            <p style="font-size: 14px; color: #888; margin-top: 5px;">
+                Polarity: {{ assessment.sentiment_polarity|round(2) }}
+            </p>
+        </div>
+        {% endif %}
+        
+        <!-- Cardiovascular -->
+        {% if assessment.has_cardiovascular %}
+        <div class="stat-card">
+            <div class="stat-label">❤️ Cardiovascular Stress</div>
+            <div class="stat-value">{{ assessment.cv_stress_level }}</div>
+            <p style="font-size: 14px; color: #888; margin-top: 5px;">
+                Avg HR: {{ assessment.cv_mean_hr|round(1) }} BPM
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Emotion Distribution Chart -->
+    {% for emotion, percentage in emotion_distribution.items() %}
+<div style="text-align: center; min-width: 100px;">
+    <div style="height: 100px; background: #1a1a1a; border: 1px solid #d4af37; border-radius: 5px; position: relative; overflow: hidden;">
+        {% set h = (percentage or 0)|int %}
+<div
+    style="--h: {{ h }}; position: absolute; bottom: 0; width: 100%; background: #d4af37; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; height: calc(var(--h) * 1%);">
+    {{ h }}%
+</div>
+    </div>
+    <div style="margin-top: 10px; font-size: 14px; color: #d4af37;">{{ emotion|title }}</div>
+</div>
+{% endfor %}
+
+    
+    <!-- Transcript -->
+    {% if assessment.transcribed_text %}
+    <div style="margin-top: 30px;">
+        <h4 style="margin-bottom: 15px;">📝 Your Response Transcript</h4>
+        <div style="background: #1a1a1a; padding: 15px; border-radius: 5px; border: 1px solid #d4af37;">
+            <p style="font-style: italic; line-height: 1.8;">
+                "{{ assessment.transcribed_text }}"
+            </p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Cardiovascular Details -->
+    {% if assessment.has_cardiovascular %}
+    <div style="margin-top: 30px;">
+        <h4 style="margin-bottom: 15px;">❤️ Cardiovascular Details</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <div style="background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 5px;">
+                <div style="font-size: 12px; color: #888;">Mean HR</div>
+                <div style="font-size: 24px; font-weight: bold; color: #d4af37;">
+                    {{ assessment.cv_mean_hr|round(1) }}
+                </div>
+                <div style="font-size: 12px; color: #888;">BPM</div>
+            </div>
+            
+            <div style="background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 5px;">
+                <div style="font-size: 12px; color: #888;">Max HR</div>
+                <div style="font-size: 24px; font-weight: bold; color: #d4af37;">
+                    {{ assessment.cv_max_hr|round(0)|int }}
+                </div>
+                <div style="font-size: 12px; color: #888;">BPM</div>
+            </div>
+            
+            <div style="background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 5px;">
+                <div style="font-size: 12px; color: #888;">Min HR</div>
+                <div style="font-size: 24px; font-weight: bold; color: #d4af37;">
+                    {{ assessment.cv_min_hr|round(0)|int }}
+                </div>
+                <div style="font-size: 12px; color: #888;">BPM</div>
+            </div>
+            
+            {% if assessment.cv_hrv_sdnn %}
+            <div style="background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 5px;">
+                <div style="font-size: 12px; color: #888;">SDNN</div>
+                <div style="font-size: 24px; font-weight: bold; color: #d4af37;">
+                    {{ assessment.cv_hrv_sdnn|round(1) }}
+                </div>
+                <div style="font-size: 12px; color: #888;">ms</div>
+            </div>
+            {% endif %}
+            
+            {% if assessment.cv_hrv_rmssd %}
+            <div style="background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 5px;">
+                <div style="font-size: 12px; color: #888;">RMSSD</div>
+                <div style="font-size: 24px; font-weight: bold; color: #d4af37;">
+                    {{ assessment.cv_hrv_rmssd|round(1) }}
+                </div>
+                <div style="font-size: 12px; color: #888;">ms</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Recommendations -->
+<div class="card">
+    <h3 style="margin-bottom: 20px;">💡 Personalized Recommendations</h3>
+    
+    {% if assessment.phq9_q9 >= 1 %}
+    <div style="background: rgba(255, 0, 0, 0.2); border: 2px solid #ff0000; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+        <h4 style="color: #ffcccc; margin-bottom: 15px;">⚠️ URGENT</h4>
+        <p style="color: #ffcccc; font-size: 16px; line-height: 1.8;">
+            You indicated experiencing thoughts of self-harm. Please seek immediate help:
+        </p>
+        <ul style="color: #ffcccc; margin-top: 15px; line-height: 2;">
+            <li><strong>AASRA:</strong> 91-9820466726 (24/7)</li>
+            <li><strong>Vandrevala Foundation:</strong> 1860-2662-345</li>
+            <li><strong>iCall:</strong> 022-25521111</li>
+        </ul>
+    </div>
+    {% endif %}
+    
+    <div class="recommendation-box">
+        {{ assessment.recommendations }}
+    </div>
+    
+    <div style="margin-top: 30px; padding: 20px; background: rgba(212, 175, 55, 0.1); border-radius: 5px;">
+        <h4 style="margin-bottom: 15px;">📞 Next Steps</h4>
+        <ul style="line-height: 2;">
+            <li>Share these results with a mental health professional</li>
+            <li>Take regular assessments to track your progress</li>
+            <li>Reach out to friends, family, or support groups</li>
+            <li>Consider professional counseling or therapy</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="card" style="text-align: center;">
+    <a href="{{ url_for('dashboard') }}" class="btn" style="margin: 10px; color: #000;">
+        📊 View All Assessments
+    </a>
+    <a href="{{ url_for('assessment') }}" class="btn" style="margin: 10px; color: #000;">
+        ➕ Take Another Assessment
+    </a>
+</div>
+
+<!-- Disclaimer -->
+<div class="card" style="background: rgba(255, 165, 0, 0.1); border-color: #FFA500;">
+    <p style="font-size: 14px; color: #FFD700; text-align: center; line-height: 1.8;">
+        ⚠️ <strong>Important:</strong> This assessment is a screening tool and does not constitute a medical diagnosis. 
+        Please consult with a qualified mental health professional for proper evaluation and treatment.
+    </p>
+</div>
+{% endblock %}

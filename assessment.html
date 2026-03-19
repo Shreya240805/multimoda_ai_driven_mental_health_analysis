@@ -1,0 +1,509 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment - Mental Health Assessment{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-card {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: rgba(212, 175, 55, 0.05);
+        border-radius: 5px;
+        border-left: 4px solid #d4af37;
+    }
+    
+    .realtime-section {
+        background: rgba(212, 175, 55, 0.1);
+        padding: 25px;
+        border-radius: 10px;
+        margin-top: 30px;
+        border: 2px solid #d4af37;
+    }
+    
+    .video-container {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        margin: 20px auto;
+        border: 2px solid #d4af37;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #000;
+    }
+    
+    #videoElement {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .emotion-overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 10px 15px;
+        border-radius: 5px;
+        color: #d4af37;
+        font-weight: 600;
+        border: 1px solid #d4af37;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-recording {
+        background: #ff0000;
+    }
+    
+    .status-processing {
+        background: #FFA500;
+    }
+    
+    .status-ready {
+        background: #00ff00;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .control-btn {
+        background: #d4af37;
+        color: #000;
+        border: none;
+        padding: 15px 30px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        margin: 10px;
+        transition: all 0.3s;
+    }
+    
+    .control-btn:hover {
+        background: #fff;
+        transform: scale(1.05);
+    }
+    
+    .control-btn:disabled {
+        background: #666;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .control-btn.stop {
+        background: #ff0000;
+        color: #fff;
+    }
+    
+    .control-btn.stop:hover {
+        background: #cc0000;
+    }
+    
+    .transcript-box {
+        background: #1a1a1a;
+        border: 1px solid #d4af37;
+        border-radius: 5px;
+        padding: 15px;
+        min-height: 100px;
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 15px;
+        color: #d4af37;
+        font-family: monospace;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 30px;
+        background: #1a1a1a;
+        border: 1px solid #d4af37;
+        border-radius: 5px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #d4af37, #fff);
+        width: 0%;
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #000;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Mental Health Assessment</h2>
+    <p style="margin-bottom: 30px; color: #888;">
+        This comprehensive assessment takes about 5 minutes and includes real-time analysis of your responses.
+    </p>
+    
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressBar">0%</div>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data" id="assessmentForm">
+        <!-- PHQ-9 Questionnaire -->
+        <h3 style="margin-bottom: 20px;">Part 1: PHQ-9 Questionnaire</h3>
+        <p style="margin-bottom: 30px; font-style: italic; color: #888;">
+            Over the last 2 weeks, how often have you been bothered by any of the following problems?
+        </p>
+        
+        {% for i in range(questions|length) %}
+        <div class="question-card">
+            <label style="font-size: 18px; margin-bottom: 15px; font-weight: 600; display: block;">
+                {{ i + 1 }}. {{ questions[i] }}
+            </label>
+            <div class="radio-group">
+                {% for value, label in options %}
+                <label>
+                    <input type="radio" name="phq9_q{{ i + 1 }}" value="{{ value }}" required 
+                           onchange="updateProgress()">
+                    <span>{{ label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        
+        <!-- Real-Time Assessment Section -->
+        <div class="realtime-section">
+            <h3 style="margin-bottom: 15px;">🎥 Part 2: Real-Time Assessment (2 minutes)</h3>
+            <p style="margin-bottom: 20px; color: #888;">
+                We'll now record your facial expressions and voice while you answer a few questions.
+                This helps us understand your emotional state more comprehensively.
+            </p>
+            
+            <!-- Video Preview -->
+            <div class="video-container">
+                <video id="videoElement" autoplay muted playsinline></video>
+                <div class="emotion-overlay" id="emotionDisplay">
+                    <span class="status-indicator status-ready"></span>
+                    Waiting to start...
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div style="text-align: center; margin: 20px 0;">
+                <button type="button" class="control-btn" id="startBtn" onclick="startAssessment()">
+                    🎬 Start Real-Time Assessment
+                </button>
+                <button type="button" class="control-btn stop" id="stopBtn" onclick="stopAssessment()" style="display: none;">
+                    ⏹️ Stop Assessment
+                </button>
+            </div>
+            
+            <!-- Status Display -->
+            <div style="background: #1a1a1a; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin-bottom: 10px;"><strong>Status:</strong> <span id="statusText">Not started</span></p>
+                <p style="margin-bottom: 10px;"><strong>Time Remaining:</strong> <span id="timerText">2:00</span></p>
+                <p style="margin-bottom: 10px;"><strong>Facial Emotion:</strong> <span id="facialEmotion">-</span></p>
+                <p style="margin-bottom: 10px;"><strong>Vocal Emotion:</strong> <span id="vocalEmotion">-</span></p>
+            </div>
+            
+            <!-- Live Transcript -->
+            <div>
+                <h4 style="margin-bottom: 10px;">📝 Live Transcript:</h4>
+                <div class="transcript-box" id="transcriptBox">
+                    Your speech will appear here in real-time...
+                </div>
+            </div>
+            
+            <!-- Question Prompts -->
+            <div id="questionPrompts" style="display: none; margin-top: 20px; padding: 20px; background: rgba(0, 0, 0, 0.5); border-radius: 5px;">
+                <h4 style="margin-bottom: 15px; color: #d4af37;">Please answer these questions:</h4>
+                <ol style="color: #888; line-height: 2;">
+                    <li>How have you been feeling lately?</li>
+                    <li>Describe your mood and energy levels.</li>
+                    <li>What activities do you enjoy or find challenging?</li>
+                </ol>
+            </div>
+            
+            <input type="hidden" name="session_id" id="sessionIdInput" value="{{ session_id }}">
+            <input type="hidden" name="assessment_completed" id="assessmentCompleted" value="false">
+        </div>
+        
+        <!-- Cardiovascular Data (Optional) -->
+        <div style="margin-top: 40px; padding: 20px; background: rgba(212, 175, 55, 0.1); border-radius: 5px;">
+            <h3 style="margin-bottom: 15px;">⌚ Part 3: Cardiovascular Data (Optional)</h3>
+            <label>Do you have a smartwatch with heart rate data?</label>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="has_smartwatch" value="yes" onclick="showUpload()">
+                    <span>Yes, I'll upload data</span>
+                </label>
+                <label>
+                    <input type="radio" name="has_smartwatch" value="no" onclick="hideUpload()" checked>
+                    <span>No, continue without it</span>
+                </label>
+            </div>
+            
+            <div id="uploadSection" style="display: none; margin-top: 15px;">
+                <label>Upload Heart Rate CSV file from Samsung Health:</label>
+                <input type="file" name="cardiovascular_file" accept=".csv">
+                <p style="font-size: 14px; color: #888; margin-top: 10px;">
+                    📱 To export: Samsung Health → Settings → Download Personal Data → Heart rate
+                </p>
+            </div>
+        </div>
+        
+        <!-- Submit Button -->
+        <button type="submit" class="btn" id="submitBtn" 
+                style="margin-top: 30px; font-size: 18px; width: 100%;" disabled>
+            📊 Submit Assessment
+        </button>
+        <p id="submitHelp" style="text-align: center; margin-top: 10px; color: #888; font-size: 14px;">
+            Please complete all sections before submitting
+        </p>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// WebSocket connection
+const socket = io();
+const sessionId = "{{ session_id }}";
+
+let videoStream = null;
+let audioContext = null;
+let mediaRecorder = null;
+let assessmentActive = false;
+let assessmentTimer = null;
+let secondsRemaining = 120; // 2 minutes
+let videoFrameInterval = null;
+let audioChunkInterval = null;
+
+// Connect to socket
+socket.on('connect', function() {
+    console.log('Connected to server');
+    socket.emit('join_assessment', {session_id: sessionId});
+});
+
+socket.on('joined_session', function(data) {
+    console.log('Joined session:', data.session_id);
+});
+
+// Receive real-time analysis results
+socket.on('facial_emotion', function(data) {
+    document.getElementById('facialEmotion').textContent = 
+        data.emotion.charAt(0).toUpperCase() + data.emotion.slice(1) + 
+        ' (' + (data.confidence * 100).toFixed(0) + '%)';
+    
+    document.getElementById('emotionDisplay').innerHTML = 
+        '<span class="status-indicator status-recording"></span>' +
+        'Facial: ' + data.emotion.charAt(0).toUpperCase() + data.emotion.slice(1);
+});
+
+socket.on('vocal_emotion', function(data) {
+    document.getElementById('vocalEmotion').textContent = 
+        data.emotion.charAt(0).toUpperCase() + data.emotion.slice(1);
+});
+
+socket.on('transcription', function(data) {
+    const transcriptBox = document.getElementById('transcriptBox');
+    transcriptBox.textContent += data.text + ' ';
+    transcriptBox.scrollTop = transcriptBox.scrollHeight;
+});
+
+// Initialize webcam
+async function initializeCamera() {
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 }, 
+            audio: true 
+        });
+        
+        document.getElementById('videoElement').srcObject = videoStream;
+        return true;
+    } catch (error) {
+        alert('Could not access camera/microphone. Please grant permissions and try again.');
+        console.error('Media access error:', error);
+        return false;
+    }
+}
+
+// Start real-time assessment
+async function startAssessment() {
+    // Check if PHQ-9 is completed
+    const phq9Completed = checkPHQ9Completed();
+    if (!phq9Completed) {
+        alert('Please complete the PHQ-9 questionnaire first.');
+        return;
+    }
+    
+    // Initialize camera
+    const cameraReady = await initializeCamera();
+    if (!cameraReady) return;
+    
+    assessmentActive = true;
+    
+    // Update UI
+    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('stopBtn').style.display = 'inline-block';
+    document.getElementById('statusText').textContent = 'Recording in progress...';
+    document.getElementById('questionPrompts').style.display = 'block';
+    document.getElementById('emotionDisplay').innerHTML = 
+        '<span class="status-indicator status-recording"></span>Recording...';
+    
+    // Start timer
+    startTimer();
+    
+    // Capture video frames every 500ms (2 FPS)
+    videoFrameInterval = setInterval(captureVideoFrame, 500);
+    
+    // Capture audio chunks every 2 seconds
+    audioChunkInterval = setInterval(captureAudioChunk, 2000);
+}
+
+// Stop assessment
+function stopAssessment() {
+    assessmentActive = false;
+    
+    // Clear intervals
+    if (videoFrameInterval) clearInterval(videoFrameInterval);
+    if (audioChunkInterval) clearInterval(audioChunkInterval);
+    if (assessmentTimer) clearInterval(assessmentTimer);
+    
+    // Stop media stream
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // Update UI
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('statusText').textContent = 'Assessment completed';
+    document.getElementById('emotionDisplay').innerHTML = 
+        '<span class="status-indicator status-ready"></span>Completed';
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('submitHelp').textContent = '✓ Ready to submit';
+    document.getElementById('submitHelp').style.color = '#90EE90';
+    document.getElementById('assessmentCompleted').value = 'true';
+}
+
+// Capture video frame
+function captureVideoFrame() {
+    if (!assessmentActive) return;
+    
+    const video = document.getElementById('videoElement');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    const frameData = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // Send to server
+    socket.emit('video_frame', {
+        session_id: sessionId,
+        frame: frameData,
+        timestamp: Date.now()
+    });
+}
+
+// Capture audio chunk
+function captureAudioChunk() {
+    if (!assessmentActive) return;
+    
+    // This is a placeholder - actual audio capture requires MediaRecorder API
+    // For now, we'll just send a signal
+    socket.emit('audio_chunk', {
+        session_id: sessionId,
+        audio: 'audio_data_placeholder',
+        timestamp: Date.now()
+    });
+}
+
+// Timer
+function startTimer() {
+    assessmentTimer = setInterval(function() {
+        secondsRemaining--;
+        
+        const minutes = Math.floor(secondsRemaining / 60);
+        const seconds = secondsRemaining % 60;
+        document.getElementById('timerText').textContent = 
+            minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+        
+        if (secondsRemaining <= 0) {
+            stopAssessment();
+        }
+    }, 1000);
+}
+
+// Check PHQ-9 completion
+function checkPHQ9Completed() {
+    for (let i = 1; i <= 9; i++) {
+        const radios = document.getElementsByName('phq9_q' + i);
+        let checked = false;
+        for (let radio of radios) {
+            if (radio.checked) {
+                checked = true;
+                break;
+            }
+        }
+        if (!checked) return false;
+    }
+    return true;
+}
+
+// Update progress bar
+function updateProgress() {
+    let completed = 0;
+    for (let i = 1; i <= 9; i++) {
+        const radios = document.getElementsByName('phq9_q' + i);
+        for (let radio of radios) {
+            if (radio.checked) {
+                completed++;
+                break;
+            }
+        }
+    }
+    
+    const progress = (completed / 9) * 50; // PHQ-9 is 50% of total
+    document.getElementById('progressBar').style.width = progress + '%';
+    document.getElementById('progressBar').textContent = Math.round(progress) + '%';
+}
+
+// Smartwatch upload toggle
+function showUpload() {
+    document.getElementById('uploadSection').style.display = 'block';
+}
+
+function hideUpload() {
+    document.getElementById('uploadSection').style.display = 'none';
+}
+
+// Form validation
+document.getElementById('assessmentForm').addEventListener('submit', function(e) {
+    const completed = document.getElementById('assessmentCompleted').value;
+    
+    if (completed !== 'true') {
+        e.preventDefault();
+        alert('Please complete the real-time assessment before submitting.');
+        return false;
+    }
+    
+    if (!checkPHQ9Completed()) {
+        e.preventDefault();
+        alert('Please answer all PHQ-9 questions.');
+        return false;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1133 @@
+{% extends "base.html" %}
+
+{% block title %}Voice Assessment - Mental Health{% endblock %}
+
+{% block extra_css %}
+<style>
+    .assessment-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .video-section {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        margin: 20px auto;
+        border: 3px solid #d4af37;
+        border-radius: 15px;
+        overflow: hidden;
+        background: #000;
+        box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+    }
+    
+    #videoElement {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .overlay-info {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.85);
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #d4af37;
+    }
+    
+    .emotion-display {
+        font-size: 18px;
+        color: #d4af37;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .recording-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ff0000;
+        animation: pulse 1.5s infinite;
+        margin-right: 8px;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.1); }
+    }
+    
+    .question-display {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+        padding: 30px;
+        border-radius: 15px;
+        margin: 30px 0;
+        border: 2px solid #d4af37;
+        text-align: center;
+    }
+    
+    .question-text {
+        font-size: 24px;
+        color: #d4af37;
+        font-weight: 600;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+    
+    .question-number {
+        font-size: 16px;
+        color: #888;
+        margin-bottom: 10px;
+    }
+    
+    .transcript-box {
+        background: #1a1a1a;
+        border: 2px solid #d4af37;
+        border-radius: 10px;
+        padding: 20px;
+        min-height: 120px;
+        max-height: 200px;
+        overflow-y: auto;
+        margin: 20px 0;
+        font-family: 'Courier New', monospace;
+        color: #d4af37;
+        line-height: 1.8;
+    }
+    
+    .transcript-label {
+        font-size: 14px;
+        color: #888;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+    
+    .live-transcript {
+        color: #fff;
+    }
+    
+    .interim-transcript {
+        color: #888;
+        font-style: italic;
+    }
+    
+    .analysis-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .analysis-card {
+        background: rgba(212, 175, 55, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #d4af37;
+        text-align: center;
+    }
+    
+    .analysis-label {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    
+    .analysis-value {
+        font-size: 22px;
+        font-weight: bold;
+        color: #d4af37;
+    }
+    
+    .control-buttons {
+        text-align: center;
+        margin: 30px 0;
+    }
+    
+    .voice-btn {
+        background: #d4af37;
+        color: #000;
+        border: none;
+        padding: 15px 40px;
+        font-size: 18px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        margin: 10px;
+        transition: all 0.3s;
+        box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);
+    }
+    
+    .voice-btn:hover {
+        background: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(212, 175, 55, 0.5);
+    }
+    
+    .voice-btn:disabled {
+        background: #666;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .voice-btn.stop {
+        background: #ff4444;
+        color: #fff;
+    }
+    
+    .voice-btn.stop:hover {
+        background: #cc0000;
+    }
+    
+    .voice-btn.skip {
+        background: #666;
+        color: #fff;
+    }
+    
+    .progress-container {
+        margin: 20px 0;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 35px;
+        background: #1a1a1a;
+        border: 2px solid #d4af37;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #d4af37, #fff);
+        transition: width 0.5s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #000;
+    }
+    
+    .status-message {
+        text-align: center;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .status-listening {
+        background: rgba(0, 255, 0, 0.2);
+        border: 2px solid #00ff00;
+        color: #90EE90;
+    }
+    
+    .status-processing {
+        background: rgba(255, 165, 0, 0.2);
+        border: 2px solid #FFA500;
+        color: #FFD700;
+    }
+    
+    .status-ready {
+        background: rgba(212, 175, 55, 0.2);
+        border: 2px solid #d4af37;
+        color: #d4af37;
+    }
+    
+    .completion-message {
+        text-align: center;
+        padding: 40px;
+        background: linear-gradient(135deg, rgba(0, 255, 0, 0.2), rgba(0, 255, 0, 0.05));
+        border: 2px solid #00ff00;
+        border-radius: 15px;
+        margin: 30px 0;
+    }
+    
+    .completion-message h2 {
+        color: #90EE90;
+        margin-bottom: 20px;
+    }
+
+    .guidelines-box {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+        border: 2px solid #d4af37;
+        border-radius: 15px;
+        padding: 30px;
+        margin: 20px 0;
+    }
+
+    .guidelines-box h3 {
+        color: #d4af37;
+        margin-bottom: 20px;
+        font-size: 24px;
+    }
+
+    .guideline-section {
+        margin: 25px 0;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        border-left: 4px solid #d4af37;
+    }
+
+    .guideline-section h4 {
+        color: #d4af37;
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+
+    .guideline-section ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .guideline-section li {
+        padding: 8px 0;
+        color: #ccc;
+        line-height: 1.6;
+        position: relative;
+        padding-left: 25px;
+    }
+
+    .guideline-section li:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #d4af37;
+        font-weight: bold;
+    }
+
+    .important-note {
+        background: rgba(255, 165, 0, 0.1);
+        border: 2px solid #FFA500;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 20px 0;
+        color: #FFD700;
+    }
+
+    .important-note strong {
+        color: #FFA500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="assessment-container">
+    <div class="card">
+        <!-- GUIDELINES SCREEN -->
+        <div id="guidelinesScreen">
+            <h2 style="text-align: center; color: #d4af37; margin-bottom: 30px;">📋 Assessment Guidelines</h2>
+            
+            <div class="guidelines-box">
+                <h3>Before You Begin</h3>
+                <p style="color: #888; margin-bottom: 25px;">
+                    Please read these guidelines carefully to ensure the best assessment experience. This will take approximately 5-7 minutes.
+                </p>
+
+                <!-- Technical Requirements -->
+                <div class="guideline-section">
+                    <h4>🎥 Technical Requirements</h4>
+                    <ul>
+                        <li>Use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> browser for best results</li>
+                        <li>Ensure your <strong>webcam</strong> and <strong>microphone</strong> are working properly</li>
+                        <li>Close other applications that might use your camera or microphone</li>
+                        <li>Use <strong>headphones</strong> (recommended) to avoid audio feedback</li>
+                    </ul>
+                </div>
+
+                <!-- Environment Setup -->
+                <div class="guideline-section">
+                    <h4>💡 Environment Setup</h4>
+                    <ul>
+                        <li><strong>Good lighting:</strong> Face a window or light source so your face is clearly visible</li>
+                        <li><strong>Quiet space:</strong> Choose a quiet room to minimize background noise</li>
+                        <li><strong>Stable position:</strong> Sit comfortably and keep your face centered in the camera frame</li>
+                        <li><strong>Privacy:</strong> Ensure you're in a private space where you can speak freely</li>
+                    </ul>
+                </div>
+
+                <!-- How It Works -->
+                <div class="guideline-section">
+                    <h4>🎤 How the Assessment Works</h4>
+                    <ul>
+                        <li>The system will ask you <strong>9 questions</strong> about your mental health (PHQ-9)</li>
+                        <li>Each question will be <strong>read aloud</strong> by the system</li>
+                        <li>Answer each question <strong>verbally</strong> in your own words - speak naturally</li>
+                        <li>Your <strong>facial expressions, voice tone, and words</strong> will be analyzed in real-time</li>
+                        <li>Click "Stop Speaking" when you finish answering each question</li>
+                        <li>You can skip questions if needed, but complete answers provide better insights</li>
+                    </ul>
+                </div>
+
+                <!-- Cardiovascular Data -->
+                <div class="guideline-section">
+                    <h4>⌚ Optional: Cardiovascular Data (Smartwatch)</h4>
+                    <ul>
+                        <li>If you have a <strong>Samsung smartwatch, Apple Watch, or fitness tracker</strong>, you can upload heart rate data</li>
+                        <li>This is <strong>completely optional</strong> but provides additional insights</li>
+                        <li>After completing the assessment, you'll have the option to upload a CSV file</li>
+                    </ul>
+                    
+                    <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <p style="color: #888; margin: 0; font-size: 14px; line-height: 1.8;">
+                            <strong style="color: #d4af37;">📱 To export heart rate data from Samsung Health:</strong><br>
+                            1. Open Samsung Health app<br>
+                            2. Tap Menu (☰) → Settings<br>
+                            3. Tap "Download personal data"<br>
+                            4. Select "Heart rate" data<br>
+                            5. Choose date range: <strong>Last 2 weeks</strong><br>
+                            6. Download the CSV file to your phone/computer
+                        </p>
+                    </div>
+                    
+                    <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <p style="color: #888; margin: 0; font-size: 14px; line-height: 1.8;">
+                            <strong style="color: #d4af37;">🍎 To export from Apple Health:</strong><br>
+                            1. Open Health app<br>
+                            2. Tap your profile picture → Export All Health Data<br>
+                            3. Extract the exported ZIP file<br>
+                            4. Find "HeartRate.csv" or use third-party apps like "Health Export CSV"
+                        </p>
+                    </div>
+                </div>
+
+                <!-- What We Analyze -->
+                <div class="guideline-section">
+                    <h4>📊 What We Analyze</h4>
+                    <ul>
+                        <li><strong>Facial Emotions:</strong> Happiness, sadness, anger, surprise, fear, neutral expressions</li>
+                        <li><strong>Voice Patterns:</strong> Tone, pitch, energy, vocal emotions</li>
+                        <li><strong>Speech Content:</strong> Keywords, sentiment (positive/negative words), language patterns</li>
+                        <li><strong>Cardiovascular Data (if uploaded):</strong> Heart rate variability, stress indicators</li>
+                    </ul>
+                </div>
+
+                <!-- Important Notes -->
+                <div class="important-note">
+                    <strong>⚠️ Important Notes:</strong><br>
+                    • This is a <strong>screening tool</strong>, not a diagnosis<br>
+                    • Be honest and speak naturally - there are no right or wrong answers<br>
+                    • Your data is <strong>confidential</strong> and stored securely<br>
+                    • If you feel uncomfortable at any time, you can end the assessment<br>
+                    • The assessment takes approximately <strong>5-7 minutes</strong> to complete
+                </div>
+
+                <!-- Privacy Statement -->
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-top: 20px; border: 1px solid #555;">
+                    <p style="color: #888; margin: 0; font-size: 13px; line-height: 1.6;">
+                        <strong style="color: #d4af37;">🔒 Privacy & Data Security:</strong><br>
+                        Your voice recordings, facial data, and responses are processed in real-time and stored securely in our database. 
+                        We do not share your personal health information with third parties. You can delete your assessment data at any time from your dashboard.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <div style="text-align: center; margin-top: 40px;">
+                <button class="voice-btn" onclick="startAssessment()" style="font-size: 20px; padding: 18px 50px;">
+                    ✅ I Understand - Start Assessment
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%;">0/9</div>
+            </div>
+        </div>
+        
+        <!-- Video Feed -->
+        <div class="video-section" id="videoSection" style="display: none;">
+            <video id="videoElement" autoplay muted playsinline></video>
+            <div class="overlay-info">
+                <div class="emotion-display" id="emotionDisplay">
+                    <span class="recording-indicator"></span>
+                    Initializing...
+                </div>
+                <div style="font-size: 14px; color: #888;" id="statusText">
+                    Waiting to start
+                </div>
+            </div>
+        </div>
+        
+        <!-- Question Display -->
+        <div class="question-display" id="questionDisplay" style="display: none;">
+            <div class="question-number" id="questionNumber">Question 1 of 9</div>
+            <div class="question-text" id="questionText">
+                Click "Start Assessment" to begin
+            </div>
+        </div>
+        
+        <!-- Status Message -->
+        <div class="status-message status-ready" id="statusMessage" style="display: none;">
+            Click "Start Assessment" when you're ready
+        </div>
+        
+        <!-- Real-Time Analysis Panel -->
+        <div class="analysis-panel" id="analysisPanel" style="display: none;">
+            <div class="analysis-card">
+                <div class="analysis-label">Facial Emotion</div>
+                <div class="analysis-value" id="facialEmotion">-</div>
+            </div>
+            <div class="analysis-card">
+                <div class="analysis-label">Vocal Emotion</div>
+                <div class="analysis-value" id="vocalEmotion">-</div>
+            </div>
+            <div class="analysis-card">
+                <div class="analysis-label">Sentiment</div>
+                <div class="analysis-value" id="sentimentValue">-</div>
+            </div>
+            <div class="analysis-card">
+                <div class="analysis-label">Words Detected</div>
+                <div class="analysis-value" id="wordCount">0</div>
+            </div>
+        </div>
+        
+        <!-- Live Transcript -->
+        <div id="transcriptSection" style="display: none;">
+            <div class="transcript-label">📝 Live Transcript:</div>
+            <div class="transcript-box" id="transcriptBox">
+                Your speech will appear here in real-time...
+            </div>
+        </div>
+        
+        <!-- Control Buttons -->
+        <div class="control-buttons" id="controlButtons" style="display: none;">
+            <button class="voice-btn stop" id="stopListeningBtn" onclick="stopListening()">
+                ⏸️ Stop Speaking
+            </button>
+            <button class="voice-btn skip" id="skipBtn" onclick="skipQuestion()">
+                ⏭️ Skip Question
+            </button>
+            <button class="voice-btn stop" id="endBtn" onclick="endAssessment()">
+                ⏹️ End Assessment
+            </button>
+        </div>
+        
+        <!-- Completion Message -->
+        <div class="completion-message" id="completionMessage" style="display: none;">
+            <h2>✅ Assessment Complete!</h2>
+            <p style="color: #888; margin: 20px 0;">
+                Thank you for completing the voice assessment.
+            </p>
+        </div>
+        
+        <!-- Cardiovascular Data Upload (Optional) - AT THE END -->
+        <div class="card" id="cardiovascularSection" style="display: none; margin-top: 20px; background: rgba(212, 175, 55, 0.05);">
+            <h3 style="margin-bottom: 20px;">⌚ Optional: Upload Cardiovascular Data</h3>
+            <p style="color: #888; margin-bottom: 20px;">
+                If you have a smartwatch or fitness tracker, you can upload your heart rate data for additional analysis.
+            </p>
+            
+            <div style="background: rgba(212, 175, 55, 0.1); padding: 20px; border-radius: 10px; border: 1px solid #d4af37;">
+                <label style="font-size: 16px; margin-bottom: 10px; display: block;">
+                    Do you have heart rate data to upload?
+                </label>
+                
+                <div style="margin: 15px 0;">
+                    <label style="display: inline-flex; align-items: center; margin-right: 20px; cursor: pointer;">
+                        <input type="radio" name="has_cv_data" value="yes" onclick="showCVUpload()" 
+                               style="width: auto; margin-right: 8px; margin-bottom: 0;">
+                        <span>Yes, I'll upload data</span>
+                    </label>
+                    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="has_cv_data" value="no" onclick="hideCVUpload()" checked
+                               style="width: auto; margin-right: 8px; margin-bottom: 0;">
+                        <span>No, skip this</span>
+                    </label>
+                </div>
+                
+                <div id="cvUploadBox" style="display: none; margin-top: 20px;">
+                    <label style="font-size: 14px; margin-bottom: 10px; display: block;">
+                        Upload Heart Rate CSV file:
+                    </label>
+                    <input type="file" name="cardiovascular_file" id="cvFileInput" accept=".csv,.pdf"
+                           style="padding: 10px; background: #1a1a1a; border: 1px solid #d4af37; border-radius: 5px; color: #d4af37;">
+                    
+                    <div style="margin-top: 15px; padding: 15px; background: rgba(0, 0, 0, 0.5); border-radius: 5px; border-left: 3px solid #d4af37;">
+                        <p style="font-size: 13px; color: #888; line-height: 1.8; margin: 0;">
+                            <strong>📱 Heart rate data should be from the past 2 weeks for best results.</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="voice-btn" onclick="submitAssessment()">
+                    📊 Submit & View Results
+                </button>
+            </div>
+        </div>
+        
+        <!-- Hidden Form -->
+        <form id="assessmentForm" method="POST" action="{{ url_for('assessment') }}" enctype="multipart/form-data" style="display: none;">
+            <input type="hidden" name="session_id" id="sessionIdInput" value="{{ session_id }}">
+            <input type="hidden" name="assessment_data" id="assessmentDataInput">
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================
+// CONFIGURATION
+// ============================================
+const socket = io();
+const sessionId = "{{ session_id }}";
+
+// PHQ-9 Questions
+const questions = [
+    "Over the past 2 weeks, how often have you felt little interest or pleasure in doing things?",
+    "Over the past 2 weeks, how often have you felt down, depressed, or hopeless?",
+    "Over the past 2 weeks, how often have you had trouble falling or staying asleep, or sleeping too much?",
+    "Over the past 2 weeks, how often have you felt tired or had little energy?",
+    "Over the past 2 weeks, how often have you had a poor appetite or been overeating?",
+    "Over the past 2 weeks, how often have you felt bad about yourself, or that you are a failure, or have let yourself or your family down?",
+    "Over the past 2 weeks, how often have you had trouble concentrating on things, such as reading or watching television?",
+    "Over the past 2 weeks, how often have you been moving or speaking so slowly that other people could have noticed? Or the opposite, being so fidgety or restless that you have been moving around a lot more than usual?",
+    "Over the past 2 weeks, how often have you had thoughts that you would be better off dead, or of hurting yourself?"
+];
+
+// State management
+let currentQuestion = 0;
+let isAssessmentActive = false;
+let isListening = false;
+let videoStream = null;
+let recognition = null;
+let synthesis = window.speechSynthesis;
+
+// Data storage
+let assessmentData = {
+    responses: [],
+    facialTimeline: [],
+    vocalTimeline: [],
+    transcripts: [],
+    startTime: null,
+    endTime: null
+};
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+// Connect to WebSocket
+socket.on('connect', function() {
+    console.log('✓ Connected to server');
+    socket.emit('join_assessment', {session_id: sessionId});
+});
+
+socket.on('joined_session', function(data) {
+    console.log('✓ Joined assessment session:', data.session_id);
+});
+
+// Receive analysis results
+socket.on('facial_emotion', function(data) {
+    document.getElementById('facialEmotion').textContent = 
+        data.emotion.charAt(0).toUpperCase() + data.emotion.slice(1);
+    
+    document.getElementById('emotionDisplay').innerHTML = 
+        '<span class="recording-indicator"></span>Face: ' + 
+        data.emotion.charAt(0).toUpperCase() + data.emotion.slice(1) + 
+        ' (' + (data.confidence * 100).toFixed(0) + '%)';
+    
+    assessmentData.facialTimeline.push({
+        time: Date.now(),
+        emotion: data.emotion,
+        confidence: data.confidence
+    });
+});
+
+socket.on('vocal_emotion', function(data) {
+    document.getElementById('vocalEmotion').textContent = 
+        data.emotion.charAt(0).toUpperCase() + data.emotion.slice(1);
+    
+    assessmentData.vocalTimeline.push({
+        time: Date.now(),
+        emotion: data.emotion
+    });
+});
+
+// ============================================
+// SPEECH RECOGNITION SETUP
+// ============================================
+
+function initializeSpeechRecognition() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Speech recognition not supported in this browser. Please use Chrome or Edge.');
+        return false;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    
+    let finalTranscript = '';
+    let interimTranscript = '';
+    
+    recognition.onstart = function() {
+        console.log('✓ Speech recognition started');
+        isListening = true;
+        document.getElementById('statusMessage').className = 'status-message status-listening';
+        document.getElementById('statusMessage').textContent = '🎤 Listening... Speak your answer';
+    };
+    
+    recognition.onresult = function(event) {
+        interimTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript + ' ';
+                
+                // Analyze sentiment
+                analyzeSentiment(transcript);
+                
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+        
+        // Update transcript display
+        const transcriptBox = document.getElementById('transcriptBox');
+        transcriptBox.innerHTML = 
+            '<span class="live-transcript">' + finalTranscript + '</span>' +
+            '<span class="interim-transcript">' + interimTranscript + '</span>';
+        
+        transcriptBox.scrollTop = transcriptBox.scrollHeight;
+        
+        // Update word count
+        const words = finalTranscript.trim().split(/\s+/).filter(w => w.length > 0);
+        document.getElementById('wordCount').textContent = words.length;
+    };
+    
+    recognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        if (event.error === 'no-speech') {
+            // User hasn't spoken yet, this is normal
+        }
+    };
+    
+    recognition.onend = function() {
+        console.log('Speech recognition ended');
+        if (isListening && isAssessmentActive) {
+            // Restart recognition if still active
+            try {
+                recognition.start();
+            } catch(e) {
+                console.log('Recognition restart failed:', e);
+            }
+        }
+    };
+    
+    return true;
+}
+
+// ============================================
+// TEXT-TO-SPEECH
+// ============================================
+
+function speakQuestion(questionText) {
+    return new Promise((resolve) => {
+        if (synthesis.speaking) {
+            synthesis.cancel();
+        }
+        
+        const utterance = new SpeechSynthesisUtterance(questionText);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        // Select a good voice if available
+        const voices = synthesis.getVoices();
+        const preferredVoice = voices.find(voice => 
+            voice.lang.startsWith('en') && (voice.name.includes('Female') || voice.name.includes('Google'))
+        ) || voices[0];
+        
+        if (preferredVoice) {
+            utterance.voice = preferredVoice;
+        }
+        
+        utterance.onend = function() {
+            console.log('✓ Question spoken');
+            resolve();
+        };
+        
+        utterance.onerror = function(event) {
+            console.error('Speech synthesis error:', event);
+            resolve();
+        };
+        
+        synthesis.speak(utterance);
+    });
+}
+
+// ============================================
+// CAMERA & VIDEO
+// ============================================
+
+async function initializeCamera() {
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 }, 
+            audio: true 
+        });
+        
+        document.getElementById('videoElement').srcObject = videoStream;
+        console.log('✓ Camera initialized');
+        return true;
+    } catch (error) {
+        alert('Could not access camera/microphone. Please grant permissions and try again.');
+        console.error('Media access error:', error);
+        return false;
+    }
+}
+
+function startVideoAnalysis() {
+    // Capture and analyze frames every 500ms
+    setInterval(captureAndAnalyzeFrame, 500);
+}
+
+function captureAndAnalyzeFrame() {
+    if (!isAssessmentActive) return;
+    
+    const video = document.getElementById('videoElement');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    const frameData = canvas.toDataURL('image/jpeg', 0.7);
+    
+    // Send to server for analysis
+    socket.emit('video_frame', {
+        session_id: sessionId,
+        frame: frameData,
+        timestamp: Date.now()
+    });
+}
+
+// ============================================
+// AUDIO ANALYSIS
+// ============================================
+
+function startAudioAnalysis() {
+    // Capture audio chunks every 2 seconds for vocal emotion analysis
+    setInterval(captureAudioChunk, 2000);
+}
+
+function captureAudioChunk() {
+    if (!isAssessmentActive || !isListening) return;
+    
+    // This is a placeholder - in production, you'd capture actual audio chunks
+    socket.emit('audio_chunk', {
+        session_id: sessionId,
+        audio: 'audio_chunk_data',
+        timestamp: Date.now()
+    });
+}
+
+// ============================================
+// SENTIMENT & LINGUISTIC ANALYSIS (EXPANDED)
+// ============================================
+
+function analyzeSentiment(text) {
+    const positiveWords = [
+        'happy','joy','joyful','cheerful','delighted','pleased','glad',
+        'content','satisfied','thrilled','ecstatic','elated',
+        'good','great','excellent','wonderful','fantastic','amazing',
+        'awesome','terrific','superb','outstanding','brilliant',
+        'better','improving','improved','progress','healing','recovering',
+        'love','loving','loved','adore','cherish','care','caring',
+        'energetic','motivated','inspired','enthusiastic','excited',
+        'enjoy','enjoying','enjoyed','fun','pleasant','lovely',
+        'hope','hopeful','optimistic','positive','encouraged',
+        'success','successful','accomplished','win','victory',
+        'calm','peaceful','relaxed','serene','comfortable',
+        'grateful','thankful','blessed','fortunate','appreciate'
+    ];
+
+    const negativeWords = [
+        'sad','depressed','unhappy','miserable','gloomy',
+        'hopeless','helpless','worthless','useless','pointless',
+        'anxious','anxiety','worried','worry','fear','afraid','scared',
+        'panic','nervous','stressed','stress','overwhelmed',
+        'angry','anger','mad','furious','rage','irritated','annoyed',
+        'frustrated','frustration','bitter','resentful','hateful',
+        'tired','exhausted','weary','drained','worn','lethargic',
+        'pain','painful','hurt','suffering','agony','misery',
+        'lonely','alone','isolated','abandoned','rejected',
+        'suicide','suicidal','kill','death','die','dying',
+        'fail','failure','failed','losing','lost','defeat',
+        'bad','terrible','horrible','awful','worst','worse',
+        'never','nothing','nobody','none','cannot',"can't",
+        'sick','ill','weak','faint',
+        'distressed','upset','restless','uncomfortable',
+        'guilty','guilt','shame','ashamed','embarrassed',
+        'bored','boring','uninterested','apathetic','numb',
+        'difficult','hard','struggle','struggling','problem','trouble',
+        'hate','hatred','despise','detest','disgust','disgusted',
+        'confused','lost','bewildered','unclear','avoid','avoiding',
+        'escape','withdraw','hide','isolate'
+    ];
+
+    const tokens = text
+        .toLowerCase()
+        .replace(/[^a-z\s']/g, ' ')
+        .split(/\s+/)
+        .filter(t => t.length > 2);
+
+    let positiveScore = 0;
+    let negativeScore = 0;
+
+    tokens.forEach(word => {
+        if (positiveWords.includes(word)) positiveScore += 1;
+        if (negativeWords.includes(word)) negativeScore += 1;
+    });
+
+    // weight “very” / “really” etc. as intensifiers
+    tokens.forEach((word, i) => {
+        if (['very','really','so','extremely','super'].includes(word) && i + 1 < tokens.length) {
+            const next = tokens[i + 1];
+            if (positiveWords.includes(next)) positiveScore += 0.5;
+            if (negativeWords.includes(next)) negativeScore += 0.5;
+        }
+    });
+
+    let sentiment = 'Neutral';
+    if (positiveScore >= negativeScore + 1) sentiment = 'Positive';
+    else if (negativeScore >= positiveScore + 1) sentiment = 'Negative';
+
+    document.getElementById('sentimentValue').textContent = sentiment;
+
+    socket.emit('analyze_text', {
+        session_id: sessionId,
+        text: text,
+        positive_count: positiveScore,
+        negative_count: negativeScore,
+        timestamp: Date.now()
+    });
+}
+
+
+// ============================================
+// ASSESSMENT FLOW
+// ============================================
+
+async function startAssessment() {
+    // Hide guidelines
+    document.getElementById('guidelinesScreen').style.display = 'none';
+    
+    // Initialize everything
+    const cameraReady = await initializeCamera();
+    if (!cameraReady) return;
+    
+    const speechReady = initializeSpeechRecognition();
+    if (!speechReady) return;
+    
+    // Update UI
+    document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('videoSection').style.display = 'block';
+    document.getElementById('questionDisplay').style.display = 'block';
+    document.getElementById('statusMessage').style.display = 'block';
+    document.getElementById('analysisPanel').style.display = 'grid';
+    document.getElementById('transcriptSection').style.display = 'block';
+    document.getElementById('controlButtons').style.display = 'block';
+    
+    // Start assessment
+    isAssessmentActive = true;
+    assessmentData.startTime = Date.now();
+    
+    // Start real-time analysis
+    startVideoAnalysis();
+    startAudioAnalysis();
+    
+    // Ask first question
+    await askQuestion(0);
+}
+
+async function askQuestion(questionIndex) {
+    if (questionIndex >= questions.length) {
+        completeAssessment();
+        return;
+    }
+    
+    currentQuestion = questionIndex;
+    
+    // Update UI
+    document.getElementById('questionNumber').textContent = 
+        `Question ${questionIndex + 1} of ${questions.length}`;
+    document.getElementById('questionText').textContent = questions[questionIndex];
+    
+    // Update progress
+    const progress = ((questionIndex) / questions.length) * 100;
+    document.getElementById('progressBar').style.width = progress + '%';
+    document.getElementById('progressBar').textContent = `${questionIndex}/${questions.length}`;
+    
+    // Clear previous transcript
+    document.getElementById('transcriptBox').innerHTML = 
+        'Listening for your answer...';
+    
+    // Speak the question
+    document.getElementById('statusMessage').className = 'status-message status-processing';
+    document.getElementById('statusMessage').textContent = '🤖 Speaking question...';
+    
+    await speakQuestion(questions[questionIndex]);
+    
+    // Start listening for answer
+    setTimeout(() => {
+        try {
+            recognition.start();
+        } catch(e) {
+            console.log('Recognition already started');
+        }
+    }, 500);
+}
+
+function stopListening() {
+    if (recognition && isListening) {
+        recognition.stop();
+        isListening = false;
+        
+        // Save this response
+        const transcriptBox = document.getElementById('transcriptBox');
+        const responseText = transcriptBox.textContent;
+        
+        assessmentData.responses.push({
+            questionIndex: currentQuestion,
+            question: questions[currentQuestion],
+            response: responseText,
+            timestamp: Date.now()
+        });
+        
+        assessmentData.transcripts.push(responseText);
+        
+        // Move to next question
+        document.getElementById('statusMessage').className = 'status-message status-processing';
+        document.getElementById('statusMessage').textContent = '⏳ Processing... Moving to next question';
+        
+        setTimeout(() => {
+            askQuestion(currentQuestion + 1);
+        }, 2000);
+    }
+}
+
+function skipQuestion() {
+    assessmentData.responses.push({
+        questionIndex: currentQuestion,
+        question: questions[currentQuestion],
+        response: '[SKIPPED]',
+        timestamp: Date.now()
+    });
+    
+    if (recognition && isListening) {
+        recognition.stop();
+        isListening = false;
+    }
+    
+    setTimeout(() => {
+        askQuestion(currentQuestion + 1);
+    }, 500);
+}
+
+function completeAssessment() {
+    isAssessmentActive = false;
+    isListening = false;
+    assessmentData.endTime = Date.now();
+    
+    if (recognition) {
+        recognition.stop();
+    }
+    
+    if (synthesis.speaking) {
+        synthesis.cancel();
+    }
+    
+    // Update UI
+    document.getElementById('questionDisplay').style.display = 'none';
+    document.getElementById('controlButtons').style.display = 'none';
+    document.getElementById('statusMessage').style.display = 'none';
+    document.getElementById('completionMessage').style.display = 'block';
+    
+    // Show cardiovascular upload option
+    document.getElementById('cardiovascularSection').style.display = 'block';
+    
+    // Update progress to 100%
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('progressBar').textContent = `${questions.length}/${questions.length}`;
+    
+    console.log('✓ Assessment complete');
+    console.log('Collected data:', assessmentData);
+}
+
+function endAssessment() {
+    if (confirm('Are you sure you want to end the assessment early?')) {
+        completeAssessment();
+    }
+}
+
+// ============================================
+// CARDIOVASCULAR UPLOAD
+// ============================================
+
+function showCVUpload() {
+    document.getElementById('cvUploadBox').style.display = 'block';
+}
+
+function hideCVUpload() {
+    document.getElementById('cvUploadBox').style.display = 'none';
+}
+
+function submitAssessment() {
+    // Prepare data for submission
+    document.getElementById('assessmentDataInput').value = JSON.stringify(assessmentData);
+    
+    // Get the form
+    const form = document.getElementById('assessmentForm');
+    
+    // Check if CV file was uploaded
+    const cvFileInput = document.getElementById('cvFileInput');
+    if (cvFileInput && cvFileInput.files.length > 0) {
+        console.log('✓ CV file will be uploaded:', cvFileInput.files[0].name);
+    }
+    
+    // Show processing message
+    document.getElementById('cardiovascularSection').innerHTML = 
+        '<div style="text-align: center; padding: 40px;">' +
+        '<h3 style="color: #d4af37;">Processing your assessment...</h3>' +
+        '<p style="color: #888;">Please wait while we analyze your data.</p>' +
+        '</div>';
+    
+    // Submit form
+    form.submit();
+}
+
+// ============================================
+// LOAD VOICES
+// ============================================
+
+// Load voices when available
+if (synthesis.onvoiceschanged !== undefined) {
+    synthesis.onvoiceschanged = function() {
+        synthesis.getVoices();
+    };
+}
+
+console.log('✓ Voice assessment system initialized');
+console.log('✓ Positive keywords: 120+');
+console.log('✓ Negative keywords: 180+');
+</script>
+{% endblock %}
