@@ -20,45 +20,25 @@ You must organize your folders exactly as shown below for the code to work:
 
 MentalHealthAssessment/
 │
-
 ├── app.py # Main Flask + SocketIO app
-
 ├── models.py # Database models (User/Assessment)
-
 ├── config.py # Flask configuration
-
 ├── templates/ # HTML templates
-
 │ ├── base.html
-
 │ ├── login.html
-
 │ ├── register.html
-
 │ ├── dashboard.html
-
 │ ├── assessment_voice.html
-
 │ └── results.html
-
 ├── static/
-
 │ ├── css/style.css
-
 │ └── js/assessment.js
-
 ├── facial_analysis.py # OpenCV + dlib facial emotion
-
 ├── vocal_linguistic_analysis.py # librosa + TextBlob
-
 ├── cardiovascular_analysis.py # Optional HRV analysis
-
 ├── shape_predictor_68_face_landmarks.dat # dlib model (REQUIRED)
-
 │
-
 ├── instance/ # SQLite database (auto-created)
-
 └── requirements.txt
 
 
