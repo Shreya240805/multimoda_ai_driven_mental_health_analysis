@@ -18,7 +18,7 @@ A real-time mental health screening platform using **facial expressions**, **voc
 
 You must organize your folders exactly as shown below for the code to work:
 
-MentalHealthAssessment/
+MentalHealthAssessment  
 │
 ├── app.py # Main Flask + SocketIO app
 ├── models.py # Database models (User/Assessment)
@@ -69,20 +69,35 @@ text
 
 Create `requirements.txt` and paste:
 Flask==2.3.3
+
 Flask-SocketIO==5.3.6
+
 Flask-Login==0.6.3
+
 Flask-SQLAlchemy==3.0.5
+
 Flask-CORS==4.0.0
+
 eventlet==0.33.3
+
 opencv-python==4.8.1.78
+
 dlib==19.24.2
+
 librosa==0.10.1
+
 speechrecognition==3.10.0
+
 textblob==0.17.1
+
 numpy==1.24.3
+
 scipy==1.11.4
+
 pandas==2.0.3
+
 python-dotenv==1.0.0
+
 werkzeug==2.3.7
 
 text
@@ -134,7 +149,7 @@ Live Analysis → Facial/vocal/sentiment updates in real-time
 
 View Results → Score + multimodal breakdown + recommendations
 
----
+
 ⚙️ Controls & Customization
 
 Runtime Settings (in app.py)
